@@ -9,6 +9,7 @@ import { defaultArticleState } from './constants/articleProps';
 import './styles/index.scss';
 import styles from './styles/index.module.scss';
 
+
 const domNode = document.getElementById('root') as HTMLDivElement;
 const root = createRoot(domNode);
 
