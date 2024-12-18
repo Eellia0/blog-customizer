@@ -3,53 +3,63 @@ import { Button } from 'src/ui/button';
 import { Select } from 'src/ui/select';
 import { RadioGroup } from 'src/ui/radio-group';
 import { Separator } from 'src/ui/separator';
-import { OptionType, fontFamilyOptions, fontColors, backgroundColors, contentWidthArr, fontSizeOptions, defaultArticleState, FontFamiliesClasses } from 'src/constants/articleProps';
+import { OptionType, fontFamilyOptions, fontColors, backgroundColors, contentWidthArr, fontSizeOptions, defaultArticleState } from 'src/constants/articleProps';
 
 import styles from './ArticleParamsForm.module.scss';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
-export const ArticleParamsForm = () => {
-  const [isFormOpen, setFormOpen] = useState<boolean>(false);
-  const [selectedFont, setSelectedFont] = useState<OptionType>(defaultArticleState.fontFamilyOption);
-  const [selectedFontColor, setSelectedFontColor] = useState<OptionType>(defaultArticleState.fontColor);
-  const [selectedFontSize, setSelectedFontSize] = useState<OptionType>(defaultArticleState.fontSizeOption);
-  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState<OptionType>(defaultArticleState.backgroundColor);
-  const [selectedContentWidth, setSelectedContentWidth] = useState<OptionType>(defaultArticleState.contentWidth);
+interface ArticleParamsFormProps {
+  currentArticleState: typeof defaultArticleState;
+  setCurrentArticleState: React.Dispatch<React.SetStateAction<typeof defaultArticleState>>;
+  setAppliedStyles: React.Dispatch<React.SetStateAction<typeof defaultArticleState>>;
+}
 
-  const handleFormSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const htmlElement = document.querySelector('html');
-    const mainElement = document.querySelector('main');
-    if (htmlElement && mainElement) {
-      mainElement.style.setProperty('--font-size', selectedFontSize.value);
-      mainElement.style.setProperty('--font-family', selectedFont.value);
-      mainElement.style.setProperty('--font-color', selectedFontColor.value);
-      mainElement.style.setProperty('--container-width', selectedContentWidth.value);
-      mainElement.style.maxWidth = selectedContentWidth.value;
-      mainElement.style.margin = '0 auto';
-      mainElement.style.backgroundColor = selectedBackgroundColor.value;
-      htmlElement.style.backgroundColor = selectedBackgroundColor.value;
+export const ArticleParamsForm: React.FC<ArticleParamsFormProps> = ({ currentArticleState, setCurrentArticleState, setAppliedStyles }) => {
+  const [isFormOpen, setFormOpen] = React.useState<boolean>(false);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const closeForm = useCallback(() => setFormOpen(false), []);
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (formRef.current && !formRef.current.contains(event.target as Node)) {
+      closeForm();
     }
   };
 
-  const handleFormReset = () => {
-    const htmlElement = document.querySelector('html');
-    const mainElement = document.querySelector('main');
-    if (htmlElement && mainElement) {
-      mainElement.style.removeProperty('--font-size');
-      mainElement.style.removeProperty('--font-family');
-      mainElement.style.removeProperty('--font-color');
-      mainElement.style.removeProperty('--container-width');
-      mainElement.style.maxWidth = '';
-      mainElement.style.margin = '';
-      mainElement.style.backgroundColor = '';
-      htmlElement.style.backgroundColor = '';
+  const handleEscape = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      closeForm();
     }
-    setSelectedFont(defaultArticleState.fontFamilyOption);
-    setSelectedFontColor(defaultArticleState.fontColor);
-    setSelectedFontSize(defaultArticleState.fontSizeOption);
-    setSelectedBackgroundColor(defaultArticleState.backgroundColor);
-    setSelectedContentWidth(defaultArticleState.contentWidth);
+  }, [closeForm]);
+
+  useEffect(() => {
+    if (isFormOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isFormOpen, handleEscape]);
+
+  const handleChange = (field: keyof typeof defaultArticleState) => (value: OptionType) => {
+    setCurrentArticleState((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+  };
+
+  const handleFormSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setAppliedStyles(currentArticleState);
+  };
+
+  const handleFormReset = () => {
+    setCurrentArticleState(defaultArticleState);
   };
 
   return (
@@ -61,13 +71,14 @@ export const ArticleParamsForm = () => {
         }}
       />
       <aside
+        ref={formRef}
         className={`${styles.container} ${isFormOpen ? styles.container_open : ''}`}
         style={{ overflow: 'hidden' }}
       >
         <form className={styles.form} onSubmit={handleFormSubmit} onReset={handleFormReset}>
           <Select
-            selected={selectedFont}
-            onChange={setSelectedFont}
+            selected={currentArticleState.fontFamilyOption}
+            onChange={handleChange('fontFamilyOption')}
             options={fontFamilyOptions}
             title="Выберите шрифт"
             placeholder="Выберите шрифт"
@@ -75,28 +86,28 @@ export const ArticleParamsForm = () => {
           <RadioGroup
             name="fontSize"
             options={fontSizeOptions}
-            selected={selectedFontSize || { title: '', value: '', className: '' }}
-            onChange={setSelectedFontSize}
+            selected={currentArticleState.fontSizeOption || { title: '', value: '', className: '' }}
+            onChange={handleChange('fontSizeOption')}
             title="Размер шрифта"
           />
           <Select
-            selected={selectedFontColor}
-            onChange={setSelectedFontColor}
+            selected={currentArticleState.fontColor}
+            onChange={handleChange('fontColor')}
             options={fontColors}
             title="Цвет шрифта"
             placeholder="Цвет шрифта"
           />
           <Separator />
           <Select
-            selected={selectedBackgroundColor}
-            onChange={setSelectedBackgroundColor}
+            selected={currentArticleState.backgroundColor}
+            onChange={handleChange('backgroundColor')}
             options={backgroundColors}
             title="Цвет фона"
             placeholder="Цвет фона"
           />
           <Select
-            selected={selectedContentWidth}
-            onChange={setSelectedContentWidth}
+            selected={currentArticleState.contentWidth}
+            onChange={handleChange('contentWidth')}
             options={contentWidthArr}
             title="Ширина контента"
             placeholder="Ширина контента"
